@@ -22,6 +22,7 @@ type Room = {
 };
 
 const rooms = new Map<string, Room>();
+const viewers = new Set<WebSocket>();
 
 function getOrCreateRoom(deviceId: string): Room {
     let r = rooms.get(deviceId);
@@ -43,6 +44,21 @@ function safeSend(ws: WebSocket | undefined, data: Buffer | string) {
 function closeWS(ws?: WebSocket) {
     if (!ws) return;
     try { ws.close(); } catch { }
+}
+
+function deviceListPayload() {
+    const items = [...rooms.values()]
+      .filter(r => !!r.publisher && r.publisher.readyState === r.publisher.OPEN)
+      .map(r => ({
+          id: r.deviceId,
+          deviceName: (r as any).deviceName ?? "unknown"
+      }));
+    return JSON.stringify({ type: "device-list", items });
+}
+
+function broadcastDeviceList() {
+    const payload = deviceListPayload();
+    viewers.forEach(v => safeSend(v, payload));
 }
 
 app.get("/status", (_, res) => {
@@ -68,7 +84,7 @@ app.get("/rooms", (_, res) => {
 app.get("/devices", (_, res) => {
     const devs = [...rooms.values()]
         .filter(r => !!r.publisher && r.publisher.readyState === r.publisher.OPEN)
-        .map(r => ({ deviceId: r.deviceId, viewing: !!r.viewer && r.viewer.readyState === r.viewer.OPEN }));
+        .map(r => ({ id: r.deviceId, deviceName: (r as any).deviceName ?? "unknown" }));
     res.json(devs);
 });
 
@@ -113,6 +129,13 @@ wss.on("connection", (ws) => {
         try { msg = JSON.parse(data.toString()); } catch { return; }
         if (!msg) return;
 
+        // Viewer discovery handshake: track viewer and send current list
+        if ((msg as any).type === "hello" && (msg as any).role === "viewer") {
+            viewers.add(ws);
+            safeSend(ws, deviceListPayload());
+            return;
+        }
+
         // Publisher đăng ký
         const pub = RegisterPublisher.safeParse(msg);
         if (pub.success) {
@@ -138,6 +161,7 @@ wss.on("connection", (ws) => {
                 "publisher registered"
             );
 
+            broadcastDeviceList();
             return;
         }
 
@@ -164,6 +188,7 @@ wss.on("connection", (ws) => {
     });
 
     ws.on("close", () => {
+        viewers.delete(ws);
         if (!role || !deviceId) return;
         const room = rooms.get(deviceId);
         if (!room) return;
@@ -172,6 +197,7 @@ wss.on("connection", (ws) => {
             room.publisher = undefined;
             // thông báo viewer (nếu đang xem) rằng stream end
             safeSend(room.viewer, JSON.stringify({ type: "stream.ended", deviceId }));
+            broadcastDeviceList();
         }
         if (role === "viewer" && room.viewer === ws) {
             room.viewer = undefined;

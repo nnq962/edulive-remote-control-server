@@ -1,12 +1,14 @@
 // src/App.tsx
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ViewerModal, { type Device as ViewerDevice } from './ViewerModal';
+import { useWsViewer } from './hooks/useWsViewer';
 import {
   App as AntApp,
   Badge,
   Button,
   Card,
   Flex,
+  Grid,
   Input,
   Layout,
   List,
@@ -16,29 +18,17 @@ import {
 } from 'antd';
 import {
   MobileOutlined,
-  ReloadOutlined,
 } from '@ant-design/icons';
-
-type Device = {
-  id: string;
-  deviceName: string;
-};
-
-const initialDevices: Device[] = [
-  { id: 'device_01qưeqweqweqweqwe', deviceName: 'Galaxy A52' },
-  { id: 'device_02', deviceName: 'Pixel 4a' },
-  // { id: 'device_03', deviceName: 'iPhone 12' },
-];
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
 
 export default function App() {
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [devices] = useState<Device[]>(initialDevices);
+  const { devices, ready } = useWsViewer();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<ViewerDevice | null>(null);
+  const screens = Grid.useBreakpoint();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -50,17 +40,17 @@ export default function App() {
     );
   }, [devices, query]);
 
-  const refresh = async () => {
-    setLoading(true);
-    // mock refresh; sau nối WS thì thay bằng request thật
-    await new Promise((r) => setTimeout(r, 600));
-    setLoading(false);
-  };
-
-  const openViewer = (device: Device) => {
+  const openViewer = (device: ViewerDevice) => {
     setSelectedDevice(device);
     setViewerOpen(true);
   };
+
+  useEffect(() => {
+    console.log('[UI] devices len:', devices.length, devices);
+  }, [devices]);
+  useEffect(() => {
+    console.log('[UI] ws ready:', ready);
+  }, [ready]);
 
   return (
     <AntApp>
@@ -80,23 +70,33 @@ export default function App() {
 
         <Content style={{ padding: 24, maxWidth: 1024, margin: '0 auto', width: '100%' }}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <Flex justify="space-between" align="center" wrap>
+            <Flex
+              justify="space-between"
+              align="center"
+              wrap
+              style={{
+                flexWrap: 'wrap',
+                rowGap: 12,
+                columnGap: 12,
+              }}
+            >
               <Title level={3} style={{ margin: 0 }}>
-                {/* Devices: N */}
                 Devices: {filtered.length}
               </Title>
-              <Space.Compact>
+              <div
+                style={{
+                  width: screens.md ? 250 : '100%',
+                  flex: screens.md ? '0 0 auto' : '1 0 100%'
+                }}
+              >
                 <Input
                   allowClear
-                  placeholder="Search by deviceName / id"
+                  placeholder="Search by device name / id"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  style={{ width: 320 }}
+                  style={{ width: '100%' }}
                 />
-                <Button icon={<ReloadOutlined />} loading={loading} onClick={refresh}>
-                  Refresh
-                </Button>
-              </Space.Compact>
+              </div>
             </Flex>
 
             <Card>

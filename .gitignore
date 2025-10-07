@@ -1,0 +1,74 @@
+# ==== macOS crap ====
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ==== Node / Package managers ====
+node_modules/
+logs/
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# Giữ lockfile để build reproducible
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ==== Vite / Build outputs ====
+dist/
+dist-ssr/
+.vite/
+.cache/
+*.tsbuildinfo
+
+# ==== Env files (giữ .env.example để share schema) ====
+.env
+.env.*.local
+!.env.example
+
+# ==== Testing ====
+coverage/
+.cypress/
+cypress/screenshots/
+cypress/videos/
+playwright-report/
+blob-report/
+test-results/
+junit.xml
+
+# ==== Lint / Tooling caches ====
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.cache-loader
+
+# ==== Editors / IDEs ====
+# VS Code: giữ settings & extensions cho team, ignore phần còn lại nếu muốn
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# JetBrains (WebStorm/IntelliJ)
+.idea/
+*.iml
+
+# ==== Misc build/temp ====
+tmp/
+temp/
+build/
+out/
+storybook-static/
+.sass-cache/
+
+# ==== OS / Archives ====
+*.swp
+*.swo
+*.orig

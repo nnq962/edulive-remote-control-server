@@ -185,6 +185,32 @@ wss.on("connection", (ws) => {
             log.info({ deviceId }, "viewer joined");
             return;
         }
+
+        // Relay viewer control to publisher: stream.start / stream.stop
+        if ((msg as any).type === "stream.start") {
+          const targetId = (msg as any).deviceId ?? deviceId;
+          if (typeof targetId === "string" && targetId.length > 0) {
+            const room = getOrCreateRoom(targetId);
+            if (room.publisher && room.publisher.readyState === room.publisher.OPEN) {
+              safeSend(room.publisher, JSON.stringify({ type: "stream.start", deviceId: targetId }));
+            } else {
+              // optional: báo lỗi về viewer nếu publisher chưa online
+              safeSend(ws, JSON.stringify({ type: "error", code: "publisher_offline", deviceId: targetId }));
+            }
+          }
+          return;
+        }
+
+        if ((msg as any).type === "stream.stop") {
+          const targetId = (msg as any).deviceId ?? deviceId;
+          if (typeof targetId === "string" && targetId.length > 0) {
+            const room = getOrCreateRoom(targetId);
+            if (room.publisher && room.publisher.readyState === room.publisher.OPEN) {
+              safeSend(room.publisher, JSON.stringify({ type: "stream.stop", deviceId: targetId }));
+            }
+          }
+          return;
+        }
     });
 
     ws.on("close", () => {
